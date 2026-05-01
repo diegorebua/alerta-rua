@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "occurrence": {
+      "title": "Occurrence",
+      "description": "An issue reported by a citizen",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the occurrence" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "type": { "type": "string", "enum": ["pothole", "light_out", "trash", "water_leak", "other"] },
+        "status": { "type": "string", "enum": ["open", "in_progress", "resolved"] },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "address": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "updatedAt": { "type": "object" }
+      },
+      "required": ["title", "description", "type", "status", "lat", "lng", "address", "authorId", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "occurrences/{occurrenceId}": {
+      "schema": { "$ref": "#/entities/occurrence" },
+      "description": "Collection of all reported occurrences"
+    }
+  }
+}

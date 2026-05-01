@@ -1,0 +1,8 @@
+{
+  "name": "Alerta rua",
+  "description": "App for citizens to report daily issues in their city, featuring maps, feeds, and filters. Uses Firebase for auth and data, and Google Maps API.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
