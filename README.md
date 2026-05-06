@@ -10,8 +10,7 @@
 - **Reporte de Ocorrências**: Formulário completo para descrever problemas, selecionar o tipo de falha e indicar a localização.
 - **Sistema de Status**: Acompanhamento do ciclo de vida das ocorrências (Aberta, Em Andamento, Resolvida) com indicadores visuais animados.
 - **Busca Inteligente**: Filtre ocorrências por título ou endereço diretamente na barra lateral.
-- **Design Premium & Clean**: Interface moderna focada em usabilidade, com modo glassmorphism, tipografia Inter e micro-animações.
-- **Autenticação (Modo Demo)**: Sistema de login e cadastro mockado para demonstração rápida sem dependência de banco de dados externo.
+
 
 ---
 
@@ -33,10 +32,3 @@ O projeto está totalmente conteinerizado, o que facilita o setup inicial.
 ### Pré-requisitos
 - Docker instalado.
 - Uma chave de API do Google Maps.
-
-### Passo a Passo
-
-1. **Clone o repositório:**
-   ```bash
-   git clone https://github.com/diegorebua/alerta-rua.git
-   cd alerta-rua
