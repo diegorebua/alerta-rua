@@ -1,50 +1,79 @@
 <template>
-  <div class="flex flex-col md:flex-row h-[calc(100vh-64px)] w-full overflow-hidden">
-    
-    <div class="w-full md:w-[400px] flex flex-col bg-white border-r border-neutral-200 shadow-sm z-10">
-      <div class="p-4 border-b border-neutral-200 space-y-4">
-        <h2 class="font-semibold text-lg text-neutral-800">Ocorrências na Região</h2>
-        
+  <div class="flex flex-col md:flex-row h-[calc(100vh-60px)] w-full overflow-hidden">
+
+    <!-- ── Sidebar ──────────────────────────────────── -->
+    <div class="w-full md:w-[380px] flex flex-col bg-white border-r border-neutral-100 z-10">
+
+      <!-- Cabeçalho -->
+      <div class="px-5 py-4 border-b border-neutral-100">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="font-semibold text-[15px] text-neutral-900">Ocorrências</h2>
+            <p class="text-xs text-neutral-400 mt-0.5">{{ filteredOccurrences.length }} registro(s) encontrado(s)</p>
+          </div>
+          <!-- Legend -->
+          <div class="flex items-center gap-2 text-[10px] text-neutral-400">
+            <span class="flex items-center gap-1"><span class="status-dot open"></span>Aberta</span>
+            <span class="flex items-center gap-1"><span class="status-dot in_progress"></span>Andamento</span>
+            <span class="flex items-center gap-1"><span class="status-dot resolved"></span>Resolvida</span>
+          </div>
+        </div>
+
+        <!-- Busca -->
         <div class="relative">
-          <Search class="w-5 h-5 absolute left-3 top-2.5 text-neutral-400 z-10" />
-          <PlaceAutocomplete 
-            @placeSelect="handlePlaceSelect" 
-            placeholder="Pesquisar rua ou bairro..."
-            className="pl-10 h-10 w-full text-sm"
+          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <input
+            v-model="searchQuery"
+            @input="handleSearch"
+            type="text"
+            placeholder="Buscar por título ou endereço..."
+            class="w-full pl-9 pr-4 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
           />
         </div>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <div v-if="filteredOccurrences.length === 0" class="text-center text-neutral-500 py-10 flex flex-col items-center gap-3">
-          <MapPin class="w-8 h-8 opacity-20" />
-          <p>Nenhuma ocorrência encontrada nesta área.</p>
+      <!-- Lista -->
+      <div class="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        <div v-if="filteredOccurrences.length === 0" class="text-center text-neutral-400 py-16 flex flex-col items-center gap-3">
+          <div class="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center">
+            <MapPin class="w-5 h-5 opacity-40" />
+          </div>
+          <p class="text-sm">Nenhuma ocorrência encontrada.</p>
         </div>
-        <div v-else
-          v-for="occ in filteredOccurrences" 
-          :key="occ.id" 
-          class="bg-white border border-neutral-200 rounded-xl p-4 hover:shadow-md transition cursor-pointer"
+
+        <div
+          v-for="occ in filteredOccurrences"
+          :key="occ.id"
+          class="card-hover bg-white border border-neutral-100 rounded-xl p-4 cursor-pointer group"
           @click="focusMap(occ.lat, occ.lng)"
         >
-          <div class="flex justify-between items-start mb-2">
-            <span class="font-semibold text-neutral-900 group-hover:text-blue-600">{{ occ.title }}</span>
-            <span :class="['text-xs px-2 py-1 rounded-full font-medium border', getStatusColor(occ.status)]">
+          <!-- Título + Badge -->
+          <div class="flex justify-between items-start gap-2 mb-2">
+            <span class="font-medium text-[13.5px] text-neutral-900 leading-snug group-hover:text-blue-600 transition">
+              {{ occ.title }}
+            </span>
+            <span :class="['shrink-0 flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border', getStatusClass(occ.status)]">
+              <span :class="['status-dot', occ.status]"></span>
               {{ getStatusText(occ.status) }}
             </span>
           </div>
-          
-          <p class="text-sm text-neutral-600 line-clamp-2 mb-3">{{ occ.description }}</p>
-          
-          <div class="text-xs text-neutral-500 flex flex-col gap-1">
-            <div class="flex items-center gap-1">
+
+          <!-- Descrição -->
+          <p class="text-[12.5px] text-neutral-500 line-clamp-2 mb-3 leading-relaxed">{{ occ.description }}</p>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center gap-1 text-[11px] text-neutral-400">
               <MapPin class="w-3 h-3" />
-              <span class="truncate">{{ occ.address }}</span>
-            </div>
-            <div class="flex justify-between items-center mt-1">
-              <span class="bg-neutral-100 px-2 py-1 rounded-md">{{ occurrenceTypes[occ.type] || occ.type }}</span>
-              <span class="flex items-center gap-1">
+              <span class="truncate max-w-[160px]">{{ occ.address }}</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] bg-neutral-100 text-neutral-500 px-2 py-0.5 rounded-md font-medium">
+                {{ occurrenceTypes[occ.type] || occ.type }}
+              </span>
+              <span class="text-[11px] text-neutral-400 flex items-center gap-0.5">
                 <Clock class="w-3 h-3" />
-                {{ occ.createdAt?.toMillis ? formatDistanceToNow(occ.createdAt.toMillis(), { addSuffix: true, locale: ptBR }) : '' }}
+                {{ formatDate(occ.createdAt) }}
               </span>
             </div>
           </div>
@@ -52,221 +81,209 @@
       </div>
     </div>
 
+    <!-- ── Mapa ──────────────────────────────────────── -->
     <div class="flex-1 relative h-full">
-      <div ref="mapContainer" class="w-full h-full"></div>
-      
-      <div class="absolute top-4 left-4 right-4 md:right-auto pointer-events-none flex gap-2">
-         <div v-if="currentZoom >= 16 && nearbyPlaces.length > 0" class="bg-white/90 backdrop-blur text-xs font-semibold px-3 py-2 rounded-full shadow-sm text-neutral-700 flex items-center gap-2 border border-white/40">
-           <Info class="w-4 h-4 text-blue-500" />
-           Mostrando estabelecimentos próximos
-         </div>
-         <div v-if="currentZoom < 16" class="bg-white/90 backdrop-blur text-xs font-medium px-3 py-2 rounded-full shadow-sm text-neutral-600 flex items-center gap-2 border border-white/40">
-           <Info class="w-4 h-4 text-neutral-400" />
-           Aproxime (zoom) para ver estabelecimentos próximos
-         </div>
+      <div ref="mapContainer" class="w-full h-full bg-neutral-100"></div>
+
+      <!-- Tooltip de zoom -->
+      <div class="absolute top-4 left-4 pointer-events-none">
+        <transition name="fade">
+          <div
+            :key="currentZoom >= 16 ? 'zoomed' : 'far'"
+            class="bg-white/90 backdrop-blur-sm text-[11.5px] font-medium px-3 py-1.5 rounded-full shadow-sm text-neutral-600 flex items-center gap-1.5 border border-neutral-100"
+          >
+            <Info class="w-3.5 h-3.5" :class="currentZoom >= 16 ? 'text-blue-500' : 'text-neutral-400'" />
+            {{ currentZoom >= 16 ? 'Visualizando detalhes da área' : 'Aproxime o zoom para ver detalhes' }}
+          </div>
+        </transition>
       </div>
     </div>
-    
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, OperationType } from '../lib/firebase';
 import { type Occurrence, occurrenceTypes } from '../lib/types';
-import PlaceAutocomplete from '../components/PlaceAutocomplete.vue';
-import { MapPin, Search, Info, Clock, CheckCircle2 } from 'lucide-vue-next';
+import { MapPin, Search, Info, Clock } from 'lucide-vue-next';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Timestamp } from 'firebase/firestore';
 
 const MAP_DEFAULT_CENTER = { lat: -23.55052, lng: -46.633308 };
 
-const occurrences = ref<Occurrence[]>([]);
-const filteredOccurrences = ref<Occurrence[]>([]);
-const nearbyPlaces = ref<google.maps.places.PlaceResult[]>([]);
-const currentZoom = ref(12);
+const DEMO_OCCURRENCES: Occurrence[] = [
+  {
+    id: 'demo-1',
+    title: 'Buraco na Avenida Paulista',
+    description: 'Grande buraco no meio da faixa da direita, próximo ao MASP. Risco para veículos e ciclistas.',
+    type: 'pothole',
+    status: 'open',
+    lat: -23.5613,
+    lng: -46.6566,
+    address: 'Av. Paulista, 1578 - Bela Vista, São Paulo',
+    neighborhood: 'Bela Vista',
+    authorId: 'demo',
+    createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 60 * 60 * 1000)),
+    updatedAt: Timestamp.fromDate(new Date(Date.now() - 2 * 60 * 60 * 1000)),
+  },
+  {
+    id: 'demo-2',
+    title: 'Poste apagado na Rua Augusta',
+    description: 'Trecho escuro de aproximadamente 50 metros na Rua Augusta. Perigoso à noite para pedestres.',
+    type: 'light_out',
+    status: 'in_progress',
+    lat: -23.5585,
+    lng: -46.6547,
+    address: 'Rua Augusta, 843 - Consolação, São Paulo',
+    neighborhood: 'Consolação',
+    authorId: 'demo',
+    createdAt: Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+    updatedAt: Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+  },
+  {
+    id: 'demo-3',
+    title: 'Acúmulo de lixo no Ibirapuera',
+    description: 'Lixo acumulado próximo ao portão 10. Situação resolvida pela equipe de limpeza.',
+    type: 'trash',
+    status: 'resolved',
+    lat: -23.5874,
+    lng: -46.6576,
+    address: 'Parque Ibirapuera - Portão 10, São Paulo',
+    neighborhood: 'Ibirapuera',
+    authorId: 'demo',
+    createdAt: Timestamp.fromDate(new Date(Date.now() - 48 * 60 * 60 * 1000)),
+    updatedAt: Timestamp.fromDate(new Date(Date.now() - 48 * 60 * 60 * 1000)),
+  },
+];
 
+const searchQuery = ref('');
+const allOccurrences = ref<Occurrence[]>([]);
+const filteredOccurrences = ref<Occurrence[]>([]);
+const currentZoom = ref(12);
 const mapContainer = ref<HTMLElement | null>(null);
 let mapInstance: google.maps.Map | null = null;
-let placesService: google.maps.places.PlacesService | null = null;
 let markers: google.maps.Marker[] = [];
-let placeMarkers: google.maps.Marker[] = [];
 
-onMounted(() => {
-  const initMap = () => {
-    if (!window.google || !window.google.maps) {
-      setTimeout(initMap, 100);
-      return;
-    }
-
-    if (mapContainer.value) {
-      mapInstance = new google.maps.Map(mapContainer.value, {
-        center: MAP_DEFAULT_CENTER,
-        zoom: 12,
-        disableDefaultUI: true,
-        zoomControl: true,
-        mapId: 'CITY_FIX_MAP_ID'
-      });
-
-      placesService = new google.maps.places.PlacesService(mapInstance);
-
-      mapInstance.addListener('zoom_changed', () => {
-        currentZoom.value = mapInstance!.getZoom() || 12;
-        handleCameraChange();
-      });
-
-      mapInstance.addListener('center_changed', () => {
-        handleCameraChange();
-      });
-
-      updateMarkers();
-    }
-  };
-
-  initMap();
-
-  const q = query(collection(db, 'occurrences'), orderBy('createdAt', 'desc'));
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Occurrence));
-    occurrences.value = data;
-    filteredOccurrences.value = data;
-    updateMarkers();
-  }, (error) => {
-    handleFirestoreError(error, OperationType.LIST, 'occurrences');
-  });
-
-  onUnmounted(() => {
-    unsubscribe();
-  });
-});
-
-watch(filteredOccurrences, () => {
-  updateMarkers();
-});
-
-watch(nearbyPlaces, () => {
-  updatePlaceMarkers();
-});
-
-const handleCameraChange = () => {
-  if (!mapInstance || !placesService) return;
-  const zoom = mapInstance.getZoom() || 12;
-
-  if (zoom >= 16) {
-    const request = {
-      location: mapInstance.getCenter()!,
-      radius: 200,
-      type: 'establishment'
-    };
-    
-    placesService.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        nearbyPlaces.value = results;
-      } else {
-        nearbyPlaces.value = [];
-      }
-    });
-  } else {
-    nearbyPlaces.value = [];
-  }
+const formatDate = (ts: any) => {
+  try {
+    const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : Date.now();
+    return formatDistanceToNow(ms, { addSuffix: true, locale: ptBR });
+  } catch { return ''; }
 };
+
+const handleSearch = () => {
+  const q = searchQuery.value.toLowerCase();
+  filteredOccurrences.value = !q
+    ? allOccurrences.value
+    : allOccurrences.value.filter(o =>
+        o.title.toLowerCase().includes(q) ||
+        o.address.toLowerCase().includes(q) ||
+        o.description.toLowerCase().includes(q)
+      );
+  updateMarkers();
+};
+
+const MOCK_OCCURRENCES_KEY = 'alerta_rua_occurrences';
+
+const getLocalOccurrences = (): Occurrence[] => {
+  try {
+    const raw = localStorage.getItem(MOCK_OCCURRENCES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
+onMounted(async () => {
+  try {
+    const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    if (apiKey) {
+      setOptions({ key: apiKey, version: 'weekly' });
+      const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
+      if (mapContainer.value) {
+        mapInstance = new Map(mapContainer.value, {
+          center: MAP_DEFAULT_CENTER,
+          zoom: 12,
+          disableDefaultUI: true,
+          zoomControl: true,
+          mapId: 'ALERTA_RUA_MAP',
+        });
+        mapInstance.addListener('zoom_changed', () => {
+          currentZoom.value = mapInstance!.getZoom() || 12;
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Google Maps não pôde ser carregado:', e);
+  }
+
+  const local = getLocalOccurrences();
+  allOccurrences.value = [...local, ...DEMO_OCCURRENCES];
+  filteredOccurrences.value = [...local, ...DEMO_OCCURRENCES];
+  updateMarkers();
+
+  try {
+    const q = query(collection(db, 'occurrences'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Occurrence));
+      const local2 = getLocalOccurrences();
+      allOccurrences.value = [...local2, ...DEMO_OCCURRENCES, ...data];
+      filteredOccurrences.value = [...local2, ...DEMO_OCCURRENCES, ...data];
+      updateMarkers();
+    });
+    onUnmounted(() => unsubscribe());
+  } catch (e) {
+    console.warn('Firestore não disponível:', e);
+  }
+});
+
+watch(filteredOccurrences, () => updateMarkers());
 
 const updateMarkers = () => {
   if (!mapInstance) return;
   markers.forEach(m => m.setMap(null));
   markers = [];
-
   filteredOccurrences.value.forEach(occ => {
+    const color = occ.status === 'open' ? '#ef4444' : occ.status === 'in_progress' ? '#f59e0b' : '#10b981';
     const marker = new google.maps.Marker({
       position: { lat: occ.lat, lng: occ.lng },
       map: mapInstance,
       title: occ.title,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        fillColor: occ.status === 'open' ? '#dc2626' : occ.status === 'in_progress' ? '#d97706' : '#059669',
+        fillColor: color,
         fillOpacity: 1,
-        strokeWeight: 2,
+        strokeWeight: 2.5,
         strokeColor: '#ffffff',
-        scale: 8,
+        scale: 9,
       }
     });
     markers.push(marker);
   });
 };
 
-const updatePlaceMarkers = () => {
-  if (!mapInstance) return;
-  placeMarkers.forEach(m => m.setMap(null));
-  placeMarkers = [];
-
-  nearbyPlaces.value.forEach(place => {
-    if (place.geometry?.location) {
-      const marker = new google.maps.Marker({
-        position: place.geometry.location,
-        map: mapInstance,
-        title: place.name,
-        icon: {
-          url: place.icon || '',
-          scaledSize: new google.maps.Size(20, 20)
-        }
-      });
-      placeMarkers.push(marker);
-    }
-  });
-};
-
-const handlePlaceSelect = (place: google.maps.places.PlaceResult | null) => {
-  if (place && place.geometry?.location && mapInstance) {
-    mapInstance.setCenter(place.geometry.location);
-    mapInstance.setZoom(16);
-    filterListByBounds({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }, 10);
-  }
-};
-
 const focusMap = (lat: number, lng: number) => {
-  if (mapInstance) {
-    mapInstance.setCenter({ lat, lng });
-    mapInstance.setZoom(16);
-  }
+  if (mapInstance) { mapInstance.setCenter({ lat, lng }); mapInstance.setZoom(16); }
 };
 
-const filterListByBounds = (center: {lat: number, lng: number}, maxKmRule: number) => {
-   const deg2rad = (deg: number) => deg * (Math.PI/180);
-   const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-     const R = 6371;
-     const dLat = deg2rad(lat2-lat1);  
-     const dLon = deg2rad(lon2-lon1); 
-     const a = 
-       Math.sin(dLat/2) * Math.sin(dLat/2) +
-       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-       Math.sin(dLon/2) * Math.sin(dLon/2); 
-     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-     const d = R * c;
-     return d;
-   }
-
-   filteredOccurrences.value = occurrences.value.filter(occ => {
-     const dist = getDistanceFromLatLonInKm(center.lat, center.lng, occ.lat, occ.lng);
-     return dist <= maxKmRule;
-   });
+const getStatusClass = (status: string) => {
+  const map: Record<string, string> = {
+    open: 'status-open',
+    in_progress: 'status-in_progress',
+    resolved: 'status-resolved',
+  };
+  return map[status] || 'text-neutral-500 bg-neutral-100 border-neutral-200';
 };
-
-const getStatusColor = (status: string) => {
-  switch(status) {
-    case 'open': return 'text-red-600 bg-red-100 border-red-200';
-    case 'in_progress': return 'text-amber-600 bg-amber-100 border-amber-200';
-    case 'resolved': return 'text-emerald-600 bg-emerald-100 border-emerald-200';
-    default: return 'text-gray-600 bg-gray-100 border-gray-200';
-  }
-}
 
 const getStatusText = (status: string) => {
-  switch(status) {
-    case 'open': return 'Aberta';
-    case 'in_progress': return 'Em Andamento';
-    case 'resolved': return 'Resolvida';
-    default: return status;
-  }
-}
+  const map: Record<string, string> = { open: 'Aberta', in_progress: 'Andamento', resolved: 'Resolvida' };
+  return map[status] || status;
+};
 </script>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>

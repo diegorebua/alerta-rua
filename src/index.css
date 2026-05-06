@@ -1,6 +1,105 @@
 @import "tailwindcss";
 
-/* Allow google maps autocomplete dropdown to show above everything */
+/* ── Base ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #171717;
+  background-color: #fafafa;
+}
+
+/* ── Transitions globais ───────────────────────────────────── */
+a, button {
+  transition: all 0.15s ease;
+}
+
+/* ── Scrollbar discreta ────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e5e5;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d4;
+}
+
+/* ── Inputs ────────────────────────────────────────────────── */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ── Google Maps autocomplete ──────────────────────────────── */
 .pac-container {
   z-index: 100000 !important;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Card hover lift ───────────────────────────────────────── */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+  transform: translateY(-1px);
+}
+
+/* ── Badge de status ───────────────────────────────────────── */
+.status-open {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.status-in_progress {
+  color: #d97706;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+.status-resolved {
+  color: #059669;
+  background: #f0fdf4;
+  border-color: #a7f3d0;
+}
+
+/* ── Dot de status animado ─────────────────────────────────── */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.open { background: #ef4444; animation: dot-pulse 2s infinite; }
+.status-dot.in_progress { background: #f59e0b; }
+.status-dot.resolved { background: #10b981; }
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ── Spinner ───────────────────────────────────────────────── */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

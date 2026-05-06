@@ -1,172 +1,268 @@
 <template>
-  <div v-if="!user" class="flex justify-center items-center h-[50vh]">
-    <div class="text-center space-y-4">
-      <AlertCircle class="w-12 h-12 text-blue-600 mx-auto" />
-      <h2 class="text-2xl font-bold">Acesso Restrito</h2>
-      <p class="text-neutral-500">Você precisa estar logado para reportar uma ocorrência.</p>
-      <button @click="$router.push('/login')" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium">Fazer Login</button>
+  <!-- Acesso restrito -->
+  <div v-if="!user" class="flex justify-center items-center min-h-[60vh] p-4 bg-[#fafafa]">
+    <div class="bg-white rounded-2xl border border-neutral-100 shadow-sm p-10 text-center max-w-sm w-full">
+      <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-5">
+        <Lock class="w-6 h-6 text-blue-600" />
+      </div>
+      <h2 class="text-lg font-semibold text-neutral-900 mb-1">Acesso Restrito</h2>
+      <p class="text-sm text-neutral-500 mb-6">Você precisa estar logado para reportar uma ocorrência.</p>
+      <button
+        @click="$router.push('/login')"
+        class="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm"
+      >
+        Fazer Login
+      </button>
     </div>
   </div>
 
-  <div v-else class="max-w-2xl mx-auto py-12 px-4">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-neutral-900 tracking-tight">Reportar Ocorrência</h1>
-      <p class="text-neutral-500 mt-2">Ajude a melhorar a cidade reportando problemas estruturais ou de zeladoria.</p>
-    </div>
+  <!-- Formulário -->
+  <div v-else class="min-h-[calc(100vh-60px)] bg-[#fafafa] py-10 px-4">
+    <div class="max-w-xl mx-auto">
 
-    <div v-if="error" class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3">
-      <AlertCircle class="w-5 h-5 mt-0.5 shrink-0" />
-      <p class="text-sm font-medium">{{ error }}</p>
-    </div>
-
-    <form @submit.prevent="handleSubmit" class="space-y-6 bg-white p-6 md:p-8 rounded-2xl border border-neutral-200 shadow-sm">
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-semibold text-neutral-900 mb-1">Título</label>
-          <input 
-            type="text"
-            v-model="title"
-            placeholder="Ex: Buraco perigoso na via"
-            maxlength="150"
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-          />
+      <!-- Sucesso -->
+      <div v-if="success" class="bg-white rounded-2xl border border-neutral-100 shadow-sm p-10 text-center">
+        <div class="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5">
+          <CheckCircle class="w-7 h-7 text-emerald-500" />
         </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-neutral-900 mb-1">Tipo de Problema</label>
-          <select 
-            v-model="type"
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition bg-white"
+        <h2 class="text-xl font-semibold text-neutral-900 mb-1">Ocorrência registrada!</h2>
+        <p class="text-sm text-neutral-500 mb-6">Sua ocorrência foi salva e já aparece no mapa.</p>
+        <div class="flex items-center justify-center gap-3">
+          <router-link
+            to="/"
+            class="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm"
           >
-            <option v-for="(label, key) in occurrenceTypes" :key="key" :value="key">{{ label }}</option>
-          </select>
+            Ver no Mapa
+          </router-link>
+          <button
+            @click="resetForm"
+            class="text-sm font-medium text-neutral-600 hover:text-neutral-900 px-5 py-2.5 rounded-lg hover:bg-neutral-100 transition"
+          >
+            Reportar outra
+          </button>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <template v-else>
+        <div class="mb-7">
+          <h1 class="text-2xl font-semibold text-neutral-900 tracking-tight">Reportar Ocorrência</h1>
+          <p class="text-sm text-neutral-500 mt-1">Ajude a melhorar a cidade descrevendo o problema encontrado.</p>
         </div>
 
-        <div>
-          <label class="block text-sm font-semibold text-neutral-900 mb-1">Localização Exata</label>
-          <p class="text-xs text-neutral-500 mb-2">Digite o endereço ou nome do estabelecimento para buscar.</p>
-          <PlaceAutocomplete 
-            @placeSelect="handlePlaceSelect" 
-            placeholder="Buscar endereço..."
-            className="border-neutral-300 rounded-lg"
-          />
-          <div v-if="location" class="mt-3 bg-neutral-50 p-3 rounded-lg border border-neutral-200 flex items-start gap-2">
-            <MapPin class="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div class="text-sm">
-              <p class="font-medium text-neutral-900">{{ location.address }}</p>
-              <p class="text-neutral-500">Bairro: {{ location.neighborhood }}</p>
+        <!-- Erro -->
+        <div v-if="error" class="mb-5 p-3 bg-red-50 text-red-600 text-[13px] rounded-lg flex items-center gap-2 border border-red-100">
+          <AlertCircle class="w-4 h-4 shrink-0" />
+          {{ error }}
+        </div>
+
+        <!-- Card do form -->
+        <div class="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 space-y-5">
+
+          <!-- Título -->
+          <div>
+            <label for="title" class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Título <span class="text-red-400">*</span>
+            </label>
+            <input
+              id="title"
+              v-model="title"
+              type="text"
+              placeholder="Ex: Buraco perigoso na via"
+              maxlength="150"
+              required
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+            />
+          </div>
+
+          <!-- Tipo -->
+          <div>
+            <label for="type" class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Tipo de Problema <span class="text-red-400">*</span>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="(label, key) in occurrenceTypes"
+                :key="key"
+                type="button"
+                @click="type = key"
+                :class="[
+                  'text-[13px] font-medium px-3 py-2.5 rounded-lg border transition text-left flex items-center gap-2',
+                  type === key
+                    ? 'bg-blue-50 border-blue-400 text-blue-700'
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
+                ]"
+              >
+                <span>{{ typeIcons[key] }}</span>
+                {{ label }}
+              </button>
             </div>
           </div>
+
+          <!-- Endereço -->
+          <div>
+            <label for="address" class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Endereço <span class="text-red-400">*</span>
+            </label>
+            <div class="relative">
+              <MapPin class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                id="address"
+                v-model="address"
+                type="text"
+                placeholder="Ex: Av. Paulista, 1578 - Bela Vista, São Paulo"
+                class="w-full pl-9 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+              />
+            </div>
+          </div>
+
+          <!-- Bairro -->
+          <div>
+            <label for="neighborhood" class="block text-[13px] font-medium text-neutral-700 mb-1.5">Bairro</label>
+            <input
+              id="neighborhood"
+              v-model="neighborhood"
+              type="text"
+              placeholder="Ex: Bela Vista"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+            />
+          </div>
+
+          <!-- Descrição -->
+          <div>
+            <label for="description" class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Descrição <span class="text-red-400">*</span>
+            </label>
+            <textarea
+              id="description"
+              v-model="description"
+              placeholder="Descreva o problema com o máximo de detalhes possível..."
+              rows="4"
+              maxlength="1000"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition resize-none"
+            ></textarea>
+            <p class="text-[11px] text-neutral-400 mt-1 text-right">{{ description.length }}/1000</p>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-neutral-100 pt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              @click="$router.push('/')"
+              class="text-sm font-medium text-neutral-600 hover:text-neutral-900 px-4 py-2.5 rounded-lg hover:bg-neutral-100 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              :disabled="loading"
+              @click="handleSubmit"
+              class="text-sm font-medium bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 active:scale-[0.98] transition shadow-sm disabled:opacity-50 flex items-center gap-2"
+            >
+              <span v-if="loading" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+              {{ loading ? 'Salvando...' : 'Enviar Ocorrência' }}
+            </button>
+          </div>
         </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-neutral-900 mb-1">Descrição Detalhada</label>
-          <textarea 
-            v-model="description"
-            placeholder="Descreva o problema com o máximo de detalhes possível..."
-            rows="4"
-            maxlength="1000"
-            class="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition resize-none"
-          ></textarea>
-        </div>
-      </div>
-
-      <div class="pt-4 border-t border-neutral-100 flex justify-end gap-3">
-        <button 
-          type="button" 
-          @click="$router.push('/')"
-          class="px-5 py-2.5 text-neutral-600 font-medium hover:bg-neutral-100 rounded-lg transition"
-        >
-          Cancelar
-        </button>
-        <button 
-          type="submit" 
-          :disabled="loading"
-          class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
-        >
-          {{ loading ? 'Salvando...' : 'Enviar Ocorrência' }}
-        </button>
-      </div>
-
-    </form>
+      </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { User } from 'firebase/auth';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { MapPin, AlertCircle, Lock, CheckCircle } from 'lucide-vue-next';
 import { occurrenceTypes } from '../lib/types';
-import PlaceAutocomplete from '../components/PlaceAutocomplete.vue';
-import { MapPin, AlertCircle } from 'lucide-vue-next';
+import { getMockUser, type MockUser } from '../lib/mockAuth';
 
-const props = defineProps<{
-  user: User | null;
-}>();
-
+const props = defineProps<{ user: MockUser | null }>();
 const router = useRouter();
-const loading = ref(false);
-const error = ref('');
+
+// Ícones por tipo
+const typeIcons: Record<string, string> = {
+  pothole: '🕳️',
+  light_out: '💡',
+  trash: '🗑️',
+  water_leak: '💧',
+  other: '⚠️',
+};
+
+const MOCK_OCCURRENCES_KEY = 'alerta_rua_occurrences';
 
 const title = ref('');
 const description = ref('');
 const type = ref('pothole');
-const location = ref<{lat: number, lng: number, address: string, neighborhood: string} | null>(null);
+const address = ref('');
+const neighborhood = ref('');
+const loading = ref(false);
+const error = ref('');
+const success = ref(false);
 
-const handlePlaceSelect = (place: google.maps.places.PlaceResult | null) => {
-  if (place && place.geometry?.location) {
-    let neighborhood = 'Desconhecido';
-    place.address_components?.forEach(comp => {
-      if (comp.types.includes('sublocality') || comp.types.includes('neighborhood')) {
-        neighborhood = comp.long_name;
-      }
-    });
+const resetForm = () => {
+  title.value = '';
+  description.value = '';
+  type.value = 'pothole';
+  address.value = '';
+  neighborhood.value = '';
+  error.value = '';
+  success.value = false;
+};
 
-    location.value = {
-      lat: place.geometry.location.lat(),
-      lng: place.geometry.location.lng(),
-      address: place.formatted_address || place.name || '',
-      neighborhood
-    };
-  } else {
-    location.value = null;
-  }
+// Coordenadas demo por bairro — fallback para centro de SP
+const BAIRRO_COORDS: Record<string, { lat: number; lng: number }> = {
+  'bela vista':    { lat: -23.5613, lng: -46.6433 },
+  'consolação':    { lat: -23.5517, lng: -46.6601 },
+  'jardins':       { lat: -23.5697, lng: -46.6500 },
+  'pinheiros':     { lat: -23.5629, lng: -46.6890 },
+  'ibirapuera':    { lat: -23.5874, lng: -46.6576 },
+  'mooca':         { lat: -23.5524, lng: -46.5932 },
+  'vila madalena': { lat: -23.5522, lng: -46.6908 },
+  'centro':        { lat: -23.5505, lng: -46.6333 },
+};
+
+const getCoords = () => {
+  const key = neighborhood.value.trim().toLowerCase();
+  return BAIRRO_COORDS[key] ?? { lat: -23.55052, lng: -46.633308 };
 };
 
 const handleSubmit = async () => {
-  if (!title.value || !description.value || !type.value || !location.value) {
-    error.value = 'Por favor, preencha todos os campos e selecione um local válido no mapa.';
-    return;
-  }
-
-  if (!props.user) return;
-  
-  loading.value = true;
   error.value = '';
 
+  if (!title.value.trim()) { error.value = 'Informe um título para a ocorrência.'; return; }
+  if (!description.value.trim()) { error.value = 'Informe uma descrição.'; return; }
+  if (!address.value.trim()) { error.value = 'Informe o endereço.'; return; }
+
+  const user = props.user ?? getMockUser();
+  if (!user) { router.push('/login'); return; }
+
+  loading.value = true;
+  await new Promise(r => setTimeout(r, 700));
+
+  const coords = getCoords();
+  const occurrence = {
+    id: `local-${Date.now()}`,
+    title: title.value.trim(),
+    description: description.value.trim(),
+    type: type.value,
+    status: 'open',
+    lat: coords.lat,
+    lng: coords.lng,
+    address: address.value.trim(),
+    neighborhood: neighborhood.value.trim() || 'Não informado',
+    authorId: user.uid,
+    authorName: user.displayName,
+    createdAt: { seconds: Math.floor(Date.now() / 1000), toMillis: () => Date.now() },
+    updatedAt: { seconds: Math.floor(Date.now() / 1000), toMillis: () => Date.now() },
+  };
+
   try {
-    const newDocRef = doc(collection(db, 'occurrences'));
-    await setDoc(newDocRef, {
-      title: title.value,
-      description: description.value,
-      type: type.value,
-      status: 'open',
-      lat: location.value.lat,
-      lng: location.value.lng,
-      address: location.value.address,
-      neighborhood: location.value.neighborhood,
-      authorId: props.user.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    
-    router.push('/');
-  } catch (err) {
-    error.value = 'Ocorreu um erro ao salvar sua ocorrência. Tente novamente.';
-    handleFirestoreError(err, OperationType.WRITE, 'occurrences');
+    const existing = JSON.parse(localStorage.getItem(MOCK_OCCURRENCES_KEY) || '[]');
+    existing.unshift(occurrence);
+    localStorage.setItem(MOCK_OCCURRENCES_KEY, JSON.stringify(existing));
+    success.value = true;
+  } catch {
+    error.value = 'Não foi possível salvar a ocorrência. Tente novamente.';
   } finally {
     loading.value = false;
   }
