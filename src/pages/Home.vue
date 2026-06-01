@@ -277,7 +277,7 @@ const refreshOccurrences = (firestoreData: Occurrence[] = []) => {
 onMounted(async () => {
   currentUser.value = getMockUser();
 
-  // Busca a API key do servidor (sempre confiável em qualquer ambiente)
+  // Tenta buscar a API key do servidor Express (Docker/Node.js)
   let apiKey = '';
   try {
     const configRes = await fetch('/api/config');
@@ -285,8 +285,13 @@ onMounted(async () => {
       const config = await configRes.json();
       apiKey = config.googleMapsApiKey || '';
     }
+    // Se não ok (ex: 404 em hosting estático), apiKey permanece '' e cai no fallback abaixo
   } catch {
-    // Fallback: tenta import.meta.env se fetch falhar
+    // Erro de rede — cai no fallback abaixo
+  }
+
+  // Fallback: import.meta.env (funciona em Cloudflare/Vercel/Netlify — baked no build pelo Vite)
+  if (!apiKey) {
     apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
   }
 
