@@ -277,15 +277,23 @@ const refreshOccurrences = (firestoreData: Occurrence[] = []) => {
 onMounted(async () => {
   currentUser.value = getMockUser();
 
-  // Tenta carregar Google Maps
+  // Busca a API key do servidor (sempre confiável em qualquer ambiente)
+  let apiKey = '';
   try {
-    const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-    // Tenta primeiro import.meta.env, depois process.env (injetado pelo vite.config)
-    const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string)
-      || (typeof process !== 'undefined' && (process.env as any).VITE_GOOGLE_MAPS_API_KEY)
-      || '';
+    const configRes = await fetch('/api/config');
+    if (configRes.ok) {
+      const config = await configRes.json();
+      apiKey = config.googleMapsApiKey || '';
+    }
+  } catch {
+    // Fallback: tenta import.meta.env se fetch falhar
+    apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
+  }
 
-    if (apiKey) {
+  // Inicializa Google Maps se a chave estiver disponível
+  if (apiKey) {
+    try {
+      const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
       setOptions({ key: apiKey, version: 'weekly' });
       const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
       if (mapContainer.value) {
@@ -301,11 +309,11 @@ onMounted(async () => {
         });
         mapLoaded.value = true;
       }
-    } else {
-      console.warn('VITE_GOOGLE_MAPS_API_KEY não configurada — usando OpenStreetMap como fallback.');
+    } catch (e) {
+      console.warn('Google Maps não pôde ser carregado:', e);
     }
-  } catch (e) {
-    console.warn('Google Maps não pôde ser carregado:', e);
+  } else {
+    console.warn('API key do Google Maps não encontrada — usando OpenStreetMap como fallback.');
   }
 
   refreshOccurrences();
