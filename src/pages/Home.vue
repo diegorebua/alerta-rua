@@ -44,11 +44,21 @@
         <div
           v-for="occ in filteredOccurrences"
           :key="occ.id"
-          class="card-hover bg-white border border-neutral-100 rounded-xl p-4 cursor-pointer group"
+          class="card-hover bg-white border border-neutral-100 rounded-xl p-4 cursor-pointer group relative"
           @click="focusMap(occ.lat, occ.lng)"
         >
+          <!-- Botão Excluir — só para o autor da ocorrência -->
+          <button
+            v-if="currentUser && occ.authorId === currentUser.uid && !occ.id?.startsWith('demo-')"
+            @click.stop="confirmDelete(occ)"
+            class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-neutral-300 hover:text-red-500"
+            title="Excluir ocorrência"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+          </button>
+
           <!-- Título + Badge -->
-          <div class="flex justify-between items-start gap-2 mb-2">
+          <div class="flex justify-between items-start gap-2 mb-2 pr-6">
             <span class="font-medium text-[13.5px] text-neutral-900 leading-snug group-hover:text-blue-600 transition">
               {{ occ.title }}
             </span>
@@ -83,10 +93,25 @@
 
     <!-- ── Mapa ──────────────────────────────────────── -->
     <div class="flex-1 relative h-full">
-      <div ref="mapContainer" class="w-full h-full bg-neutral-100"></div>
+      <!-- Mapa Google Maps (quando API key disponível) -->
+      <div ref="mapContainer" class="w-full h-full bg-neutral-100" :class="{ hidden: !mapLoaded }"></div>
 
-      <!-- Tooltip de zoom -->
-      <div class="absolute top-4 left-4 pointer-events-none">
+      <!-- Fallback: OpenStreetMap via iframe quando não há API key -->
+      <div v-if="!mapLoaded" class="w-full h-full flex flex-col items-center justify-center bg-neutral-50 relative">
+        <iframe
+          :src="osmUrl"
+          class="w-full h-full border-0"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Mapa de ocorrências"
+        ></iframe>
+        <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-[11px] text-neutral-500 px-3 py-1.5 rounded-full shadow-sm border border-neutral-200">
+          Mapa via OpenStreetMap
+        </div>
+      </div>
+
+      <!-- Tooltip de zoom (só quando Google Maps estiver ativo) -->
+      <div v-if="mapLoaded" class="absolute top-4 left-4 pointer-events-none">
         <transition name="fade">
           <div
             :key="currentZoom >= 16 ? 'zoomed' : 'far'"
@@ -100,17 +125,54 @@
     </div>
 
   </div>
+
+  <!-- ── Modal de confirmação de exclusão ─────────────── -->
+  <Teleport to="body">
+    <div
+      v-if="deleteTarget"
+      class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      @click.self="deleteTarget = null"
+    >
+      <div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+      <div class="relative bg-white rounded-2xl shadow-xl border border-neutral-100 p-6 max-w-sm w-full">
+        <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Trash2 class="w-5 h-5 text-red-500" />
+        </div>
+        <h3 class="text-[15px] font-semibold text-neutral-900 text-center mb-1">Excluir Ocorrência</h3>
+        <p class="text-sm text-neutral-500 text-center mb-5">
+          Tem certeza que deseja excluir <strong>"{{ deleteTarget?.title }}"</strong>? Esta ação não pode ser desfeita.
+        </p>
+        <div class="flex gap-3">
+          <button
+            @click="deleteTarget = null"
+            class="flex-1 text-sm font-medium text-neutral-600 hover:text-neutral-900 px-4 py-2.5 rounded-lg hover:bg-neutral-100 transition border border-neutral-200"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="deleteOccurrence"
+            :disabled="deleting"
+            class="flex-1 text-sm font-medium bg-red-500 text-white px-4 py-2.5 rounded-lg hover:bg-red-600 transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <span v-if="deleting" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            {{ deleting ? 'Excluindo...' : 'Excluir' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db, OperationType } from '../lib/firebase';
 import { type Occurrence, occurrenceTypes } from '../lib/types';
-import { MapPin, Search, Info, Clock } from 'lucide-vue-next';
+import { MapPin, Search, Info, Clock, Trash2 } from 'lucide-vue-next';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
+import { getMockUser, type MockUser } from '../lib/mockAuth';
 
 const MAP_DEFAULT_CENTER = { lat: -23.55052, lng: -46.633308 };
 
@@ -164,6 +226,16 @@ const allOccurrences = ref<Occurrence[]>([]);
 const filteredOccurrences = ref<Occurrence[]>([]);
 const currentZoom = ref(12);
 const mapContainer = ref<HTMLElement | null>(null);
+const mapLoaded = ref(false);
+const deleteTarget = ref<Occurrence | null>(null);
+const deleting = ref(false);
+const currentUser = ref<MockUser | null>(null);
+
+// URL do OpenStreetMap centralizada em SP como fallback
+const osmUrl = computed(() => {
+  return `https://www.openstreetmap.org/export/embed.html?bbox=-46.7333%2C-23.6333%2C-46.5333%2C-23.4667&layer=mapnik`;
+});
+
 let mapInstance: google.maps.Map | null = null;
 let markers: google.maps.Marker[] = [];
 
@@ -195,10 +267,24 @@ const getLocalOccurrences = (): Occurrence[] => {
   } catch { return []; }
 };
 
+const refreshOccurrences = (firestoreData: Occurrence[] = []) => {
+  const local = getLocalOccurrences();
+  allOccurrences.value = [...local, ...DEMO_OCCURRENCES, ...firestoreData];
+  filteredOccurrences.value = [...local, ...DEMO_OCCURRENCES, ...firestoreData];
+  updateMarkers();
+};
+
 onMounted(async () => {
+  currentUser.value = getMockUser();
+
+  // Tenta carregar Google Maps
   try {
     const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    // Tenta primeiro import.meta.env, depois process.env (injetado pelo vite.config)
+    const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string)
+      || (typeof process !== 'undefined' && (process.env as any).VITE_GOOGLE_MAPS_API_KEY)
+      || '';
+
     if (apiKey) {
       setOptions({ key: apiKey, version: 'weekly' });
       const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
@@ -213,25 +299,22 @@ onMounted(async () => {
         mapInstance.addListener('zoom_changed', () => {
           currentZoom.value = mapInstance!.getZoom() || 12;
         });
+        mapLoaded.value = true;
       }
+    } else {
+      console.warn('VITE_GOOGLE_MAPS_API_KEY não configurada — usando OpenStreetMap como fallback.');
     }
   } catch (e) {
     console.warn('Google Maps não pôde ser carregado:', e);
   }
 
-  const local = getLocalOccurrences();
-  allOccurrences.value = [...local, ...DEMO_OCCURRENCES];
-  filteredOccurrences.value = [...local, ...DEMO_OCCURRENCES];
-  updateMarkers();
+  refreshOccurrences();
 
   try {
     const q = query(collection(db, 'occurrences'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Occurrence));
-      const local2 = getLocalOccurrences();
-      allOccurrences.value = [...local2, ...DEMO_OCCURRENCES, ...data];
-      filteredOccurrences.value = [...local2, ...DEMO_OCCURRENCES, ...data];
-      updateMarkers();
+      refreshOccurrences(data);
     });
     onUnmounted(() => unsubscribe());
   } catch (e) {
@@ -280,6 +363,36 @@ const getStatusClass = (status: string) => {
 const getStatusText = (status: string) => {
   const map: Record<string, string> = { open: 'Aberta', in_progress: 'Andamento', resolved: 'Resolvida' };
   return map[status] || status;
+};
+
+// ── Exclusão de ocorrências ───────────────────────────────────────
+const confirmDelete = (occ: Occurrence) => {
+  deleteTarget.value = occ;
+};
+
+const deleteOccurrence = async () => {
+  if (!deleteTarget.value) return;
+  const occ = deleteTarget.value;
+  deleting.value = true;
+
+  try {
+    if (occ.id?.startsWith('local-')) {
+      // Remove do localStorage
+      const existing: Occurrence[] = JSON.parse(localStorage.getItem(MOCK_OCCURRENCES_KEY) || '[]');
+      const updated = existing.filter(o => o.id !== occ.id);
+      localStorage.setItem(MOCK_OCCURRENCES_KEY, JSON.stringify(updated));
+      refreshOccurrences();
+    } else if (occ.id && !occ.id.startsWith('demo-')) {
+      // Remove do Firestore
+      await deleteDoc(doc(db, 'occurrences', occ.id));
+      // O listener onSnapshot vai atualizar automaticamente
+    }
+    deleteTarget.value = null;
+  } catch (e) {
+    console.error('Erro ao excluir ocorrência:', e);
+  } finally {
+    deleting.value = false;
+  }
 };
 </script>
 
