@@ -47,18 +47,31 @@
           class="card-hover bg-white border border-neutral-100 rounded-xl p-4 cursor-pointer group relative"
           @click="focusMap(occ.lat, occ.lng)"
         >
-          <!-- Botão Excluir — só para o autor da ocorrência -->
-          <button
+          <!-- Ações do autor (Editar + Excluir) — só aparecem ao passar o mouse -->
+          <div
             v-if="currentUser && occ.authorId === currentUser.uid && !occ.id?.startsWith('demo-')"
-            @click.stop="confirmDelete(occ)"
-            class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-neutral-300 hover:text-red-500"
-            title="Excluir ocorrência"
+            class="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Trash2 class="w-3.5 h-3.5" />
-          </button>
+            <!-- Botão Editar -->
+            <button
+              @click.stop="openEditModal(occ)"
+              class="p-1.5 rounded-lg hover:bg-blue-50 text-neutral-300 hover:text-blue-500 transition-colors"
+              title="Editar ocorrência"
+            >
+              <Pencil class="w-3.5 h-3.5" />
+            </button>
+            <!-- Botão Excluir -->
+            <button
+              @click.stop="confirmDelete(occ)"
+              class="p-1.5 rounded-lg hover:bg-red-50 text-neutral-300 hover:text-red-500 transition-colors"
+              title="Excluir ocorrência"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           <!-- Título + Badge -->
-          <div class="flex justify-between items-start gap-2 mb-2 pr-6">
+          <div class="flex justify-between items-start gap-2 mb-2 pr-14">
             <span class="font-medium text-[13.5px] text-neutral-900 leading-snug group-hover:text-blue-600 transition">
               {{ occ.title }}
             </span>
@@ -161,14 +174,171 @@
       </div>
     </div>
   </Teleport>
+
+  <!-- ── Modal de Edição ───────────────────────────────── -->
+  <Teleport to="body">
+    <div
+      v-if="editTarget"
+      class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      @click.self="closeEditModal"
+    >
+      <div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+      <div class="relative bg-white rounded-2xl shadow-xl border border-neutral-100 p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+
+        <!-- Header do modal -->
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center">
+              <Pencil class="w-4.5 h-4.5 text-blue-500" />
+            </div>
+            <div>
+              <h3 class="text-[15px] font-semibold text-neutral-900">Editar Ocorrência</h3>
+              <p class="text-[12px] text-neutral-400">Atualize as informações da ocorrência</p>
+            </div>
+          </div>
+          <button
+            @click="closeEditModal"
+            class="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Erro -->
+        <div v-if="editError" class="mb-4 p-3 bg-red-50 text-red-600 text-[13px] rounded-lg flex items-center gap-2 border border-red-100">
+          <AlertCircle class="w-4 h-4 shrink-0" />
+          {{ editError }}
+        </div>
+
+        <div class="space-y-4">
+          <!-- Título -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Título <span class="text-red-400">*</span>
+            </label>
+            <input
+              v-model="editForm.title"
+              type="text"
+              maxlength="150"
+              placeholder="Ex: Buraco perigoso na via"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
+            />
+          </div>
+
+          <!-- Tipo -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">Tipo de Problema</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="(label, key) in occurrenceTypes"
+                :key="key"
+                type="button"
+                @click="editForm.type = key"
+                :class="[
+                  'text-[13px] font-medium px-3 py-2 rounded-lg border transition text-left flex items-center gap-2',
+                  editForm.type === key
+                    ? 'bg-blue-50 border-blue-400 text-blue-700'
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
+                ]"
+              >
+                <span>{{ typeIcons[key] }}</span>
+                {{ label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Endereço -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Endereço <span class="text-red-400">*</span>
+            </label>
+            <div class="relative">
+              <MapPin class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <input
+                v-model="editForm.address"
+                type="text"
+                placeholder="Ex: Av. Paulista, 1578 - Bela Vista, São Paulo"
+                class="w-full pl-9 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
+              />
+            </div>
+          </div>
+
+          <!-- Bairro -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">Bairro</label>
+            <input
+              v-model="editForm.neighborhood"
+              type="text"
+              placeholder="Ex: Bela Vista"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
+            />
+          </div>
+
+          <!-- Status -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">Status</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                v-for="(label, key) in statusOptions"
+                :key="key"
+                type="button"
+                @click="editForm.status = key"
+                :class="[
+                  'text-[12px] font-medium px-3 py-2 rounded-lg border transition text-center',
+                  editForm.status === key
+                    ? statusActiveClass[key]
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
+                ]"
+              >
+                {{ label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Descrição -->
+          <div>
+            <label class="block text-[13px] font-medium text-neutral-700 mb-1.5">
+              Descrição <span class="text-red-400">*</span>
+            </label>
+            <textarea
+              v-model="editForm.description"
+              rows="4"
+              maxlength="1000"
+              placeholder="Descreva o problema com o máximo de detalhes possível..."
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition resize-none"
+            ></textarea>
+            <p class="text-[11px] text-neutral-400 mt-1 text-right">{{ editForm.description.length }}/1000</p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex gap-3 mt-5 pt-4 border-t border-neutral-100">
+          <button
+            @click="closeEditModal"
+            class="flex-1 text-sm font-medium text-neutral-600 hover:text-neutral-900 px-4 py-2.5 rounded-lg hover:bg-neutral-100 transition border border-neutral-200"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="saveEdit"
+            :disabled="saving"
+            class="flex-1 text-sm font-medium bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <span v-if="saving" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            {{ saving ? 'Salvando...' : 'Salvar Alterações' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, OperationType } from '../lib/firebase';
 import { type Occurrence, occurrenceTypes } from '../lib/types';
-import { MapPin, Search, Info, Clock, Trash2 } from 'lucide-vue-next';
+import { MapPin, Search, Info, Clock, Trash2, Pencil, X, AlertCircle } from 'lucide-vue-next';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
@@ -221,6 +391,28 @@ const DEMO_OCCURRENCES: Occurrence[] = [
   },
 ];
 
+// Ícones por tipo
+const typeIcons: Record<string, string> = {
+  pothole: '🕳️',
+  light_out: '💡',
+  trash: '🗑️',
+  water_leak: '💧',
+  other: '⚠️',
+};
+
+// Status
+const statusOptions: Record<string, string> = {
+  open: 'Aberta',
+  in_progress: 'Em Andamento',
+  resolved: 'Resolvida',
+};
+
+const statusActiveClass: Record<string, string> = {
+  open: 'bg-red-50 border-red-400 text-red-700',
+  in_progress: 'bg-amber-50 border-amber-400 text-amber-700',
+  resolved: 'bg-emerald-50 border-emerald-400 text-emerald-700',
+};
+
 const searchQuery = ref('');
 const allOccurrences = ref<Occurrence[]>([]);
 const filteredOccurrences = ref<Occurrence[]>([]);
@@ -230,6 +422,81 @@ const mapLoaded = ref(false);
 const deleteTarget = ref<Occurrence | null>(null);
 const deleting = ref(false);
 const currentUser = ref<MockUser | null>(null);
+
+// ── Estado do modal de edição ─────────────────────────
+const editTarget = ref<Occurrence | null>(null);
+const saving = ref(false);
+const editError = ref('');
+const editForm = ref({
+  title: '',
+  description: '',
+  type: 'pothole',
+  address: '',
+  neighborhood: '',
+  status: 'open',
+});
+
+const openEditModal = (occ: Occurrence) => {
+  editTarget.value = occ;
+  editForm.value = {
+    title: occ.title,
+    description: occ.description,
+    type: occ.type,
+    address: occ.address,
+    neighborhood: occ.neighborhood,
+    status: occ.status,
+  };
+  editError.value = '';
+};
+
+const closeEditModal = () => {
+  editTarget.value = null;
+  editError.value = '';
+};
+
+const saveEdit = async () => {
+  if (!editTarget.value) return;
+  editError.value = '';
+
+  if (!editForm.value.title.trim()) { editError.value = 'Informe um título para a ocorrência.'; return; }
+  if (!editForm.value.description.trim()) { editError.value = 'Informe uma descrição.'; return; }
+  if (!editForm.value.address.trim()) { editError.value = 'Informe o endereço.'; return; }
+
+  saving.value = true;
+  const occ = editTarget.value;
+
+  try {
+    const updatedFields = {
+      title: editForm.value.title.trim(),
+      description: editForm.value.description.trim(),
+      type: editForm.value.type,
+      address: editForm.value.address.trim(),
+      neighborhood: editForm.value.neighborhood.trim() || 'Não informado',
+      status: editForm.value.status,
+    };
+
+    if (occ.id?.startsWith('local-')) {
+      // Atualiza no localStorage
+      const existing: Occurrence[] = JSON.parse(localStorage.getItem(MOCK_OCCURRENCES_KEY) || '[]');
+      const idx = existing.findIndex(o => o.id === occ.id);
+      if (idx !== -1) {
+        existing[idx] = { ...existing[idx], ...updatedFields };
+        localStorage.setItem(MOCK_OCCURRENCES_KEY, JSON.stringify(existing));
+      }
+      refreshOccurrences();
+    } else if (occ.id && !occ.id.startsWith('demo-')) {
+      // Atualiza no Firestore
+      await updateDoc(doc(db, 'occurrences', occ.id), updatedFields);
+    }
+
+    closeEditModal();
+  } catch (e) {
+    console.error('Erro ao salvar edição:', e);
+    editError.value = 'Não foi possível salvar as alterações. Tente novamente.';
+  } finally {
+    saving.value = false;
+  }
+};
 
 // URL do OpenStreetMap centralizada em SP como fallback
 const osmUrl = computed(() => {

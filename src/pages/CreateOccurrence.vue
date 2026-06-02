@@ -71,7 +71,7 @@
               placeholder="Ex: Buraco perigoso na via"
               maxlength="150"
               required
-              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
             />
           </div>
 
@@ -99,21 +99,64 @@
             </div>
           </div>
 
-          <!-- Endereço -->
+          <!-- Endereço com Autocomplete -->
           <div>
             <label for="address" class="block text-[13px] font-medium text-neutral-700 mb-1.5">
               Endereço <span class="text-red-400">*</span>
             </label>
-            <div class="relative">
-              <MapPin class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <div class="relative" ref="addressWrapperRef">
+              <MapPin class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none z-10" />
               <input
                 id="address"
                 v-model="address"
                 type="text"
+                autocomplete="off"
                 placeholder="Ex: Av. Paulista, 1578 - Bela Vista, São Paulo"
-                class="w-full pl-9 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+                @input="onAddressInput"
+                @focus="showSuggestions = addressSuggestions.length > 0"
+                @keydown.down.prevent="moveSuggestion(1)"
+                @keydown.up.prevent="moveSuggestion(-1)"
+                @keydown.enter.prevent="selectSuggestion(activeSuggestionIndex)"
+                @keydown.escape="showSuggestions = false"
+                class="w-full pl-9 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
               />
+
+              <!-- Indicador de carregamento -->
+              <div v-if="loadingAddress" class="absolute right-3 top-1/2 -translate-y-1/2">
+                <span class="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin block"></span>
+              </div>
+
+              <!-- Dropdown de sugestões -->
+              <div
+                v-if="showSuggestions && addressSuggestions.length > 0"
+                class="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden z-50"
+              >
+                <ul role="listbox" class="divide-y divide-neutral-50">
+                  <li
+                    v-for="(suggestion, idx) in addressSuggestions"
+                    :key="suggestion.place_id"
+                    role="option"
+                    :aria-selected="idx === activeSuggestionIndex"
+                    @mousedown.prevent="selectSuggestion(idx)"
+                    @mouseover="activeSuggestionIndex = idx"
+                    :class="[
+                      'flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-colors text-sm',
+                      idx === activeSuggestionIndex ? 'bg-blue-50' : 'hover:bg-neutral-50'
+                    ]"
+                  >
+                    <MapPin class="w-3.5 h-3.5 text-neutral-400 mt-0.5 shrink-0" />
+                    <div class="min-w-0">
+                      <p class="text-neutral-800 text-[13px] font-medium truncate">{{ suggestion.display_name.split(',')[0] }}</p>
+                      <p class="text-neutral-400 text-[11px] truncate">{{ suggestion.display_name.split(',').slice(1).join(',').trim() }}</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
             </div>
+            <p class="text-[11px] text-neutral-400 mt-1.5 flex items-center gap-1">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-300"></span>
+              Comece a digitar para ver sugestões de endereços
+            </p>
           </div>
 
           <!-- Bairro -->
@@ -124,7 +167,7 @@
               v-model="neighborhood"
               type="text"
               placeholder="Ex: Bela Vista"
-              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition"
             />
           </div>
 
@@ -139,7 +182,7 @@
               placeholder="Descreva o problema com o máximo de detalhes possível..."
               rows="4"
               maxlength="1000"
-              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 transition resize-none"
+              class="w-full px-3.5 py-2.5 text-sm border border-neutral-200 rounded-lg placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-50 outline-none transition resize-none"
             ></textarea>
             <p class="text-[11px] text-neutral-400 mt-1 text-right">{{ description.length }}/1000</p>
           </div>
@@ -170,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { MapPin, AlertCircle, Lock, CheckCircle } from 'lucide-vue-next';
 import { occurrenceTypes } from '../lib/types';
@@ -199,6 +242,105 @@ const loading = ref(false);
 const error = ref('');
 const success = ref(false);
 
+// ── Autocomplete de endereço (Nominatim / OSM) ────────────────────
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    suburb?: string;
+    neighbourhood?: string;
+    city_district?: string;
+    quarter?: string;
+  };
+}
+
+const addressWrapperRef = ref<HTMLElement | null>(null);
+const addressSuggestions = ref<NominatimResult[]>([]);
+const showSuggestions = ref(false);
+const loadingAddress = ref(false);
+const activeSuggestionIndex = ref(-1);
+const selectedCoords = ref<{ lat: number; lng: number } | null>(null);
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+const onAddressInput = () => {
+  selectedCoords.value = null; // Limpa coords ao editar manualmente
+  const q = address.value.trim();
+
+  if (searchTimer) clearTimeout(searchTimer);
+
+  if (q.length < 3) {
+    addressSuggestions.value = [];
+    showSuggestions.value = false;
+    return;
+  }
+
+  loadingAddress.value = true;
+  searchTimer = setTimeout(async () => {
+    try {
+      const params = new URLSearchParams({
+        q: `${q}, São Paulo, Brasil`,
+        format: 'json',
+        addressdetails: '1',
+        limit: '6',
+        countrycodes: 'br',
+      });
+
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' },
+      });
+
+      if (res.ok) {
+        const data: NominatimResult[] = await res.json();
+        addressSuggestions.value = data;
+        showSuggestions.value = data.length > 0;
+        activeSuggestionIndex.value = -1;
+      }
+    } catch (e) {
+      console.warn('Autocomplete indisponível:', e);
+    } finally {
+      loadingAddress.value = false;
+    }
+  }, 400);
+};
+
+const selectSuggestion = (idx: number) => {
+  const s = addressSuggestions.value[idx >= 0 ? idx : 0];
+  if (!s) return;
+
+  address.value = s.display_name;
+  selectedCoords.value = { lat: parseFloat(s.lat), lng: parseFloat(s.lon) };
+
+  // Tenta preencher bairro automaticamente
+  const addr = s.address;
+  if (addr) {
+    const bairro = addr.suburb || addr.neighbourhood || addr.city_district || addr.quarter || '';
+    if (bairro && !neighborhood.value) {
+      neighborhood.value = bairro;
+    }
+  }
+
+  showSuggestions.value = false;
+  addressSuggestions.value = [];
+};
+
+const moveSuggestion = (dir: 1 | -1) => {
+  const max = addressSuggestions.value.length - 1;
+  activeSuggestionIndex.value = Math.max(0, Math.min(max, activeSuggestionIndex.value + dir));
+};
+
+// Fecha sugestões ao clicar fora
+const handleOutsideClick = (e: MouseEvent) => {
+  if (addressWrapperRef.value && !addressWrapperRef.value.contains(e.target as Node)) {
+    showSuggestions.value = false;
+  }
+};
+
+onMounted(() => document.addEventListener('mousedown', handleOutsideClick));
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideClick));
+
 const resetForm = () => {
   title.value = '';
   description.value = '';
@@ -207,6 +349,8 @@ const resetForm = () => {
   neighborhood.value = '';
   error.value = '';
   success.value = false;
+  addressSuggestions.value = [];
+  selectedCoords.value = null;
 };
 
 // Coordenadas demo por bairro — fallback para centro de SP
@@ -222,6 +366,9 @@ const BAIRRO_COORDS: Record<string, { lat: number; lng: number }> = {
 };
 
 const getCoords = () => {
+  // Prioridade: coords selecionadas via autocomplete
+  if (selectedCoords.value) return selectedCoords.value;
+  // Fallback: bairro digitado manualmente
   const key = neighborhood.value.trim().toLowerCase();
   return BAIRRO_COORDS[key] ?? { lat: -23.55052, lng: -46.633308 };
 };

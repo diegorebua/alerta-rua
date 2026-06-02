@@ -9,6 +9,8 @@ export default defineConfig(({mode}) => {
     plugins: [vue(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      // Expõe a API key do Google Maps no bundle de produção
+      'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(env.VITE_GOOGLE_MAPS_API_KEY || ''),
     },
     resolve: {
       alias: {
