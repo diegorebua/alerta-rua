@@ -23,7 +23,23 @@ export default {
       });
     }
 
-    // Encaminha requisições estáticas para o motor de assets da Cloudflare
-    return env.ASSETS.fetch(request);
+    if (url.pathname.startsWith('/api/')) {
+      return Response.json({ error: 'Not Found' }, { status: 404 });
+    }
+
+    try {
+      const response = await env.ASSETS.fetch(request);
+      if (response.status === 404) {
+        return await env.ASSETS.fetch(new Request(new URL('/', request.url).toString(), request));
+      }
+      return response;
+    } catch (err: unknown) {
+      try {
+        return await env.ASSETS.fetch(new Request(new URL('/', request.url).toString(), request));
+      } catch (fallbackErr: unknown) {
+        const msg = err instanceof Error ? err.stack || err.message : String(err);
+        return new Response(`Worker caught error: ${msg}`, { status: 500 });
+      }
+    }
   },
 };
