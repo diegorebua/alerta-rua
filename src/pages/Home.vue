@@ -548,7 +548,7 @@ onMounted(async () => {
   let apiKey = '';
   try {
     const configRes = await fetch('/api/config');
-    if (configRes.ok) {
+    if (configRes.ok && configRes.headers.get('content-type')?.includes('application/json')) {
       const config = await configRes.json();
       apiKey = config.googleMapsApiKey || '';
     }
