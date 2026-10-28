@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node scripts/with-onepassword.mjs .1password/development.env tsx server.ts",
     "env:1password": "node scripts/with-onepassword.mjs .1password/development.env",
+    "compose": "node scripts/with-onepassword.mjs .1password/development.env docker compose --env-file /dev/null",
     "test:env": "node --test scripts/with-onepassword.test.mjs",
+    "test:compose": "node --test scripts/compose-onepassword.test.mjs",
     "build": "vite build",
     "start": "node server.ts",
     "preview": "npm run build && wrangler dev",
@@ -37,7 +39,7 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.45.1",
+    "@cloudflare/vite-plugin": "^1.66.0",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@types/express": "^4.17.21",
     "@types/google.maps": "^3.64.0",
@@ -50,6 +52,6 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
     "vue-tsc": "^3.3.13",
-    "wrangler": "^4.112.0"
+    "wrangler": "^4.155.0"
   }
 }

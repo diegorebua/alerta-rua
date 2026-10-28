@@ -34,9 +34,9 @@ O projeto está estruturado com Docker, simplificando a configuração do ambien
 ### Passos para Execução com Docker
 
 1. Clone o repositório e navegue até o diretório do projeto.
-2. Crie ou configure as variáveis de ambiente necessárias (como as chaves do Firebase e do Google Maps) no arquivo `.env`.
+2. Prepare o acesso ao cofre conforme o [guia do 1Password](docs/1password.md).
 3. Execute o comando de inicialização dos containers:
-   `docker-compose up -d --build`
+   `npm run compose -- up -d --build`
 4. A aplicação estará disponível na porta configurada.
 
 ### Passos para Execução Nativa

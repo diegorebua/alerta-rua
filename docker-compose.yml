@@ -2,12 +2,13 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3200:3000"
       - "24678:24678"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
-    env_file:
-      - .env
+      NODE_ENV: development
+      ONEPASSWORD_ACTIVE: "1"
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
+      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:?Use npm run compose para carregar o 1Password}
