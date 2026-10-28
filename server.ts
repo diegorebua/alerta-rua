@@ -3,8 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { config as loadDotenv } from 'dotenv';
 
-// Garante que o .env seja carregado mesmo quando rodando fora do Vite
-loadDotenv();
+if (process.env.ONEPASSWORD_ACTIVE !== '1') loadDotenv();
 
 async function startServer() {
   const app = express();

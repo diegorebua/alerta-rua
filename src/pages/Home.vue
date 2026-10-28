@@ -566,7 +566,7 @@ onMounted(async () => {
   if (apiKey) {
     try {
       const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-      setOptions({ key: apiKey, version: 'weekly' });
+      setOptions({ key: apiKey, v: 'weekly' });
       const { Map } = await importLibrary('maps') as google.maps.MapsLibrary;
       if (mapContainer.value) {
         mapInstance = new Map(mapContainer.value, {

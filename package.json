@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "node scripts/with-onepassword.mjs .1password/development.env tsx server.ts",
+    "env:1password": "node scripts/with-onepassword.mjs .1password/development.env",
+    "test:env": "node --test scripts/with-onepassword.test.mjs",
     "build": "vite build",
     "start": "node server.ts",
     "preview": "npm run build && wrangler dev",
@@ -47,6 +49,7 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
+    "vue-tsc": "^3.3.13",
     "wrangler": "^4.112.0"
   }
 }

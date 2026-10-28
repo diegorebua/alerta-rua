@@ -21,6 +21,8 @@ O Alerta Rua é uma plataforma colaborativa para monitoramento e reporte de prob
 
 ## Como Executar o Projeto Localmente
 
+O desenvolvimento nativo usa o [1Password](docs/1password.md) por meio de `npm run dev`. Consulte também o [índice da documentação](docs/index.md).
+
 O projeto está estruturado com Docker, simplificando a configuração do ambiente de desenvolvimento. Também é possível rodá-lo utilizando os scripts nativos do Node.js.
 
 ### Pré-requisitos
@@ -40,7 +42,7 @@ O projeto está estruturado com Docker, simplificando a configuração do ambien
 ### Passos para Execução Nativa
 
 1. Instale as dependências executando o comando `npm install`.
-2. Configure o arquivo `.env` com as chaves necessárias.
+2. Prepare a autenticação e as referências seguindo o [guia do 1Password](docs/1password.md).
 3. Inicie o servidor de desenvolvimento com `npm run dev`.
 
 ## Estrutura do Projeto
