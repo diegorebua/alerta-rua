@@ -1,5 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
-import vue from '@vitejs/plugin-vue';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
 
@@ -9,9 +9,8 @@ export default defineConfig(({mode}) => {
   const env = process.env.ONEPASSWORD_ACTIVE === '1' ? process.env : loadEnv(mode, '.', '');
   return {
     envDir: process.env.ONEPASSWORD_ACTIVE === '1' ? false : undefined,
-    plugins: [vue(), tailwindcss(), cloudflare()],
+    plugins: [react(), tailwindcss(), cloudflare()],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       // Expõe a API key do Google Maps no bundle de produção
       'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(env.VITE_GOOGLE_MAPS_API_KEY || ''),
     },

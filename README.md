@@ -11,7 +11,7 @@ O Alerta Rua é uma plataforma colaborativa para monitoramento e reporte de prob
 
 ## Tecnologias Utilizadas
 
-- Frontend: Vue.js 3 e React.
+- Frontend: React 19 e TypeScript.
 - Construção e Empacotamento: Vite.
 - Estilização: Tailwind CSS.
 - Mapas: Google Maps JavaScript API.

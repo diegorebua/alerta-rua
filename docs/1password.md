@@ -51,4 +51,4 @@ A chave pública de mapas continua sendo entregue ao navegador, conforme o compo
 
 `npm run test:env` testa o runner com fixtures, sem acessar o cofre ou serviços externos.
 
-`npm run lint` executa `vue-tsc --noEmit`. As declarações do Vite ficam em `src/vite-env.d.ts`; o carregador de mapas usa a opção `v` da versão instalada de `@googlemaps/js-api-loader`.
+`npm run lint` executa `tsc --noEmit`. As declarações do Vite ficam em `src/vite-env.d.ts`; o carregador de mapas usa a opção `v` da versão instalada de `@googlemaps/js-api-loader`.
