@@ -18,6 +18,7 @@ async function startServer() {
   app.get('/api/config', (req, res) => {
     res.json({
       googleMapsApiKey: process.env.VITE_GOOGLE_MAPS_API_KEY || '',
+      clerkPublishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY || '',
     });
   });
 

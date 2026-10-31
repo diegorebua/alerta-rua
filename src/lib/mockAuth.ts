@@ -127,6 +127,37 @@ export function getMockUser(): MockUser | null {
   }
 }
 
+export function setClerkSessionUser(user: MockUser | null): void {
+  try {
+    if (user) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  } catch {
+    // Ignora erro de storage
+  }
+}
+
 export function isMockLoggedIn(): boolean {
   return getMockUser() !== null;
+}
+
+export function resolveAuthorName(authorId: string, authorName?: string): string {
+  if (authorName && authorName.trim()) {
+    return authorName.trim();
+  }
+  if (authorId === 'demo') {
+    return 'Cidadão Verificado';
+  }
+  const current = getMockUser();
+  if (current && current.uid === authorId && current.displayName) {
+    return current.displayName;
+  }
+  const users = getStoredUsers();
+  const matched = users.find((u) => u.uid === authorId);
+  if (matched?.displayName) {
+    return matched.displayName;
+  }
+  return 'Morador da região';
 }

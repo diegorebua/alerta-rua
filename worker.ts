@@ -4,6 +4,8 @@ export interface Env {
   };
   GOOGLE_MAPS_API_KEY?: string;
   VITE_GOOGLE_MAPS_API_KEY?: string;
+  CLERK_PUBLISHABLE_KEY?: string;
+  VITE_CLERK_PUBLISHABLE_KEY?: string;
 }
 
 export default {
@@ -20,6 +22,7 @@ export default {
     if (url.pathname === '/api/config') {
       return Response.json({
         googleMapsApiKey: env.VITE_GOOGLE_MAPS_API_KEY || env.GOOGLE_MAPS_API_KEY || '',
+        clerkPublishableKey: env.VITE_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || '',
       });
     }
 

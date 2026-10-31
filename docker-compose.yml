@@ -12,3 +12,4 @@ services:
       ONEPASSWORD_ACTIVE: "1"
       CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
       VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:?Use npm run compose para carregar o 1Password}
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-pk_test_c2F2aW5nLWNvd2JpcmQtNzU3OS5jbGVyay5hY2NvdW50cy5kZXYk}

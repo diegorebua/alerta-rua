@@ -11,6 +11,7 @@ export interface Occurrence {
   address: string;
   neighborhood: string;
   authorId: string;
+  authorName?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

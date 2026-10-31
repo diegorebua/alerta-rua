@@ -1,0 +1,223 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+export interface SeedUser {
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export interface SeedOccurrence {
+  id: string;
+  title: string;
+  description: string;
+  type: 'pothole' | 'light_out' | 'trash' | 'water_leak' | 'other';
+  status: 'open' | 'in_progress' | 'resolved';
+  lat: number;
+  lng: number;
+  address: string;
+  neighborhood: string;
+  authorId: string;
+  authorName: string;
+  hoursAgo: number;
+}
+
+const SEED_USERS: SeedUser[] = [
+  {
+    id: 'mock-user-001',
+    email: 'diegorebua@gmail.com',
+    displayName: 'Diego Rebuá',
+  },
+  {
+    id: 'seed-user-sorocaba-01',
+    email: 'camila.ferreira@sorocaba.sp.br',
+    displayName: 'Camila Ferreira',
+  },
+  {
+    id: 'seed-user-sorocaba-02',
+    email: 'rafael.mendes@sorocaba.sp.br',
+    displayName: 'Rafael Mendes',
+  },
+  {
+    id: 'seed-user-sorocaba-03',
+    email: 'juliana.rocha@sorocaba.sp.br',
+    displayName: 'Juliana Rocha',
+  },
+  {
+    id: 'seed-user-sorocaba-04',
+    email: 'marcos.oliveira@sorocaba.sp.br',
+    displayName: 'Marcos Oliveira',
+  },
+];
+
+const SEED_OCCURRENCES: SeedOccurrence[] = [
+  {
+    id: 'sorocaba-seed-01',
+    title: 'Cratera na faixa direita da Av. Antônio Carlos Comitre',
+    description:
+      'Buraco profundo próximo ao cruzamento principal no Parque Campolim. Veículos estão desviando bruscamente em horário de pico.',
+    type: 'pothole',
+    status: 'open',
+    lat: -23.5338,
+    lng: -47.4639,
+    address: 'Av. Antônio Carlos Comitre, 540 - Parque Campolim, Sorocaba - SP',
+    neighborhood: 'Parque Campolim',
+    authorId: 'mock-user-001',
+    authorName: 'Diego Rebuá',
+    hoursAgo: 1,
+  },
+  {
+    id: 'sorocaba-seed-02',
+    title: 'Postes apagados na Rua XV de Novembro',
+    description:
+      'Sequência de três luminárias sem funcionamento no calçadão do Centro, deixando o trecho escuro após o fechamento do comércio.',
+    type: 'light_out',
+    status: 'in_progress',
+    lat: -23.5015,
+    lng: -47.4581,
+    address: 'Rua XV de Novembro, 210 - Centro, Sorocaba - SP',
+    neighborhood: 'Centro',
+    authorId: 'seed-user-sorocaba-01',
+    authorName: 'Camila Ferreira',
+    hoursAgo: 4,
+  },
+  {
+    id: 'sorocaba-seed-03',
+    title: 'Vazamento de água limpa na Av. General Carneiro',
+    description:
+      'Água jorrando continuamente pela guia da calçada há mais de 6 horas, formando lâmina d’água na pista sentido Centro.',
+    type: 'water_leak',
+    status: 'open',
+    lat: -23.5078,
+    lng: -47.4724,
+    address: 'Av. General Carneiro, 1120 - Mangal, Sorocaba - SP',
+    neighborhood: 'Mangal',
+    authorId: 'seed-user-sorocaba-02',
+    authorName: 'Rafael Mendes',
+    hoursAgo: 6,
+  },
+  {
+    id: 'sorocaba-seed-04',
+    title: 'Descarte irregular de entulho próximo à Av. Dom Aguirre',
+    description:
+      'Restos de obra e galhos acumulados obstruindo parcialmente a ciclovia às margens do Rio Sorocaba.',
+    type: 'trash',
+    status: 'in_progress',
+    lat: -23.4892,
+    lng: -47.4452,
+    address: 'Av. Dom Aguirre, 2121 - Jardim Santa Rosália, Sorocaba - SP',
+    neighborhood: 'Jardim Santa Rosália',
+    authorId: 'seed-user-sorocaba-03',
+    authorName: 'Juliana Rocha',
+    hoursAgo: 12,
+  },
+  {
+    id: 'sorocaba-seed-05',
+    title: 'Afundamento no asfalto na Av. Afonso Vergueiro',
+    description:
+      'Desnível acentuado ao redor do tampão de ferro na faixa de ônibus, próximo à Praça da Bandeira.',
+    type: 'pothole',
+    status: 'open',
+    lat: -23.4958,
+    lng: -47.4659,
+    address: 'Av. Afonso Vergueiro, 1700 - Vila Trujillo, Sorocaba - SP',
+    neighborhood: 'Vila Trujillo',
+    authorId: 'seed-user-sorocaba-04',
+    authorName: 'Marcos Oliveira',
+    hoursAgo: 18,
+  },
+  {
+    id: 'sorocaba-seed-06',
+    title: 'Semáforo de pedestres intermitente na Av. São Paulo',
+    description:
+      'Botoeira da faixa de pedestres não aciona o fechamento para travessia segura em frente ao ponto comercial.',
+    type: 'other',
+    status: 'open',
+    lat: -23.5034,
+    lng: -47.4368,
+    address: 'Av. São Paulo, 1450 - Além Ponte, Sorocaba - SP',
+    neighborhood: 'Além Ponte',
+    authorId: 'mock-user-001',
+    authorName: 'Diego Rebuá',
+    hoursAgo: 26,
+  },
+  {
+    id: 'sorocaba-seed-07',
+    title: 'Iluminação restabelecida próximo ao Paço Municipal',
+    description:
+      'Manutenção concluída na fiação subterrânea das luminárias da ciclovia no Alto da Boa Vista.',
+    type: 'light_out',
+    status: 'resolved',
+    lat: -23.4712,
+    lng: -47.4239,
+    address: 'Av. Engenheiro Carlos Reinaldo Mendes, 3041 - Alto da Boa Vista, Sorocaba - SP',
+    neighborhood: 'Alto da Boa Vista',
+    authorId: 'seed-user-sorocaba-01',
+    authorName: 'Camila Ferreira',
+    hoursAgo: 36,
+  },
+  {
+    id: 'sorocaba-seed-08',
+    title: 'Buraco na rotatória do Wanel Ville',
+    description:
+      'Asfalto cedendo na entrada da rotatória principal da Av. Paulo Emanuel de Almeida após as últimas chuvas.',
+    type: 'pothole',
+    status: 'in_progress',
+    lat: -23.4931,
+    lng: -47.5103,
+    address: 'Av. Paulo Emanuel de Almeida, 680 - Wanel Ville, Sorocaba - SP',
+    neighborhood: 'Wanel Ville',
+    authorId: 'seed-user-sorocaba-02',
+    authorName: 'Rafael Mendes',
+    hoursAgo: 48,
+  },
+  {
+    id: 'sorocaba-seed-09',
+    title: 'Acúmulo de resíduos recolhido na Vila Hortência',
+    description:
+      'Equipe de zeladoria realizou a limpeza completa do terreno e desobstruiu a calçada.',
+    type: 'trash',
+    status: 'resolved',
+    lat: -23.5082,
+    lng: -47.4418,
+    address: 'Rua Nogueira Martins, 320 - Vila Hortência, Sorocaba - SP',
+    neighborhood: 'Vila Hortência',
+    authorId: 'seed-user-sorocaba-03',
+    authorName: 'Juliana Rocha',
+    hoursAgo: 72,
+  },
+  {
+    id: 'sorocaba-seed-10',
+    title: 'Vazamento na rede de distribuição no Éden',
+    description:
+      'Vazamento na tubulação lateral da Av. Independência causando baixa pressão nas residências próximas.',
+    type: 'water_leak',
+    status: 'open',
+    lat: -23.4285,
+    lng: -47.4052,
+    address: 'Av. Independência, 4900 - Éden, Sorocaba - SP',
+    neighborhood: 'Éden',
+    authorId: 'seed-user-sorocaba-04',
+    authorName: 'Marcos Oliveira',
+    hoursAgo: 96,
+  },
+];
+
+function runSeed() {
+  const outputPath = path.resolve(process.cwd(), 'src/lib/seedData.json');
+  const payload = {
+    city: 'Sorocaba - SP',
+    center: { lat: -23.5015, lng: -47.4526 },
+    seededAt: new Date().toISOString(),
+    users: SEED_USERS,
+    occurrences: SEED_OCCURRENCES,
+  };
+
+  fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2) + '\n', 'utf-8');
+  console.log(`[SEED] Arquivo gerado com sucesso em: ${outputPath}`);
+  console.log(`[SEED] Cidade base: ${payload.city}`);
+  console.log(`[SEED] Usuários: ${SEED_USERS.length} | Ocorrências em Sorocaba: ${SEED_OCCURRENCES.length}`);
+}
+
+runSeed();

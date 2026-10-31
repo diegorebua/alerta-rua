@@ -11,8 +11,9 @@ export default defineConfig(({mode}) => {
     envDir: process.env.ONEPASSWORD_ACTIVE === '1' ? false : undefined,
     plugins: [react(), tailwindcss(), cloudflare()],
     define: {
-      // Expõe a API key do Google Maps no bundle de produção
+      // Expõe a API key do Google Maps e Clerk no bundle de produção
       'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(env.VITE_GOOGLE_MAPS_API_KEY || ''),
+      'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(env.VITE_CLERK_PUBLISHABLE_KEY || ''),
     },
     resolve: {
       alias: {
